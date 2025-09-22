@@ -12,12 +12,21 @@ local harpoon_list = harpoon:list()
 -- Get all marks
 local function get_marks()
   local marks = {}
-  for i, item in ipairs(harpoon_list.items) do
-    local abs_path = vim.fn.fnamemodify(item.value, ":p") -- ensure absolute path
-    table.insert(marks, { idx = i, value = vim.fn.fnamemodify(item.value, ":t"), path = abs_path })
+  local indices = {}
+  for i in pairs(harpoon_list.items) do
+    table.insert(indices, i)
+  end
+  table.sort(indices)
+  for _, i in ipairs(indices) do
+    local item = harpoon_list.items[i]
+    if item then
+      local abs_path = vim.fn.fnamemodify(item.value, ":p")
+      table.insert(marks, { idx = i, value = vim.fn.fnamemodify(item.value, ":t"), path = abs_path })
+    end
   end
   return marks
 end
+
 
 -- Build the tabline with highlighting
 local function harpbar_tabline()
