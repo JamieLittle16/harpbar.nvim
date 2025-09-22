@@ -19,6 +19,7 @@
 **harpbar.nvim** is a lightweight Neovim plugin that displays an informative tabline for Harpoon marks. It provides a visual bar at the top of your Neovim window, showing all your current Harpoon marks with clear highlighting for the active file. This makes it easier to track, navigate, and manage your marked files when using [ThePrimeagen/harpoon](https://github.com/ThePrimeagen/harpoon).
 
 ## Installation
+
 Install using your package manager of choice (Lazy is most throughly tested).
 
 ### Using [lazy.nvim](https://github.com/folke/lazy.nvim)
@@ -31,6 +32,12 @@ Install using your package manager of choice (Lazy is most throughly tested).
     require("harpbar").setup()
   end,
 }
+```
+#### Note
+It is recommended to disable lazy loading for harpoon.
+Add this to your harpoon config to disable it.
+```lua
+lazy = false,
 ```
 
 ### Using [packer.nvim](https://github.com/wbthomason/packer.nvim)
