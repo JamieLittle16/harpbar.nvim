@@ -42,4 +42,4 @@ function M.tabline()
   return harpbar_tabline()
 end
 
-r
+return M
