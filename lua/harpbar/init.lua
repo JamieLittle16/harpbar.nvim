@@ -13,22 +13,27 @@ local harpoon_list = harpoon:list()
 local function get_marks()
   local marks = {}
   for i, item in ipairs(harpoon_list.items) do
-    table.insert(marks, { idx = i, value = vim.fn.fnamemodify(item.value, ":t") })
+    local abs_path = vim.fn.fnamemodify(item.value, ":p") -- ensure absolute path
+    table.insert(marks, { idx = i, value = vim.fn.fnamemodify(item.value, ":t"), path = abs_path })
   end
   return marks
 end
 
--- Build the tabline
+-- Build the tabline with highlighting
 local function harpbar_tabline()
   local marks = get_marks()
   if #marks == 0 then
     return " Harpbar: [no marks] "
   end
 
+  local current = vim.fn.expand("%:p") -- full path of current buffer
   local parts = {}
   for _, mark in ipairs(marks) do
-    table.insert(parts, string.format(" %d:%s ", mark.idx, mark.value))
+    local hl = (vim.loop.fs_realpath(mark.path) == vim.loop.fs_realpath(current)) and "%#HarpbarActive#" or
+        "%#HarpbarInactive#"
+    table.insert(parts, hl .. string.format(" %d:%s ", mark.idx, mark.value))
   end
+
   return table.concat(parts, "|")
 end
 
@@ -36,6 +41,10 @@ end
 function M.setup()
   vim.o.showtabline = 2
   vim.o.tabline = "%!v:lua.require'harpbar'.tabline()"
+
+  -- Define highlight groups
+  vim.cmd("highlight HarpbarInactive guifg=#888888")        -- grey
+  vim.cmd("highlight HarpbarActive guifg=#ffffff gui=bold") -- white & bold
 end
 
 function M.tabline()
