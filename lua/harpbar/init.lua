@@ -35,9 +35,11 @@ function M.render()
   end
   local text = table.concat(lines, "  ")
 
-  -- If win already exists, update
-  if M.win and vim.api.nvim_win_is_valid(M.win) then
+  -- If win already exists, update its buffer
+  if M.win and vim.api.nvim_win_is_valid(M.win) and M.buf and vim.api.nvim_buf_is_valid(M.buf) then
+    vim.api.nvim_buf_set_option(M.buf, "modifiable", true)
     vim.api.nvim_buf_set_lines(M.buf, 0, -1, false, { text })
+    vim.api.nvim_buf_set_option(M.buf, "modifiable", false)
     return
   end
 
