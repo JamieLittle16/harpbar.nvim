@@ -1,54 +1,70 @@
 local M = {}
 
-M.setup = function()
-  -- highlight groups
-  vim.api.nvim_set_hl(0, "HarpbarNumber", { fg = "#FF8700", bold = true })
-  vim.api.nvim_set_hl(0, "HarpbarFile", { fg = "#A0A0A0" })
-  vim.api.nvim_set_hl(0, "HarpbarCurrent", { fg = "#FFD700", bold = true })
+function M.setup(opts)
+  opts = opts or {}
+  M.opts = vim.tbl_extend("force", {
+    height = 1,
+    hl_group = "StatusLine",
+  }, opts)
 
-  local harpoon_ok, harpoon = pcall(require, "harpoon.mark")
-  if not harpoon_ok then return end
+  -- Create augroup so the bar updates when needed
+  local augroup = vim.api.nvim_create_augroup("Harpbar", { clear = true })
 
-  function _G.harpbar_tabline()
-    local buf_list = harpoon.get_marked_files()
-    if #buf_list == 0 then return "" end
+  vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost" }, {
+    group = augroup,
+    callback = function() M.render() end,
+  })
 
-    local s = ""
-    local current_buf = vim.api.nvim_get_current_buf()
+  -- Initial render
+  M.render()
+end
 
-    for i, file in ipairs(buf_list) do
-      local fname = vim.fn.fnamemodify(file.filename, ":t")
-      local bufnum = vim.fn.bufnr(file.filename)
-      local hl_number = "HarpbarNumber"
-      local hl_file = "HarpbarFile"
+function M.render()
+  local harpoon = require("harpoon")
+  local list = harpoon:list()
 
-      if bufnum == current_buf then
-        hl_number = "HarpbarCurrent"
-        hl_file = "HarpbarCurrent"
-      end
-
-      s = s .. string.format(
-        "%%#%s#%%@v:lua.HarpbarJump@%d@ %d %%#%s#%s %%X",
-        hl_number, i, i, hl_file, fname
-      )
-    end
-    return s
+  if not list or #list.items == 0 then
+    M.close()
+    return
   end
 
-  function _G.HarpbarJump(num)
-    require("harpoon.ui").nav_file(tonumber(num))
+  local lines = {}
+  for i, item in ipairs(list.items) do
+    local name = vim.fn.fnamemodify(item.value, ":t") -- filename only
+    table.insert(lines, string.format("[%d] %s", i, name))
+  end
+  local text = table.concat(lines, "  ")
+
+  -- If win already exists, update
+  if M.win and vim.api.nvim_win_is_valid(M.win) then
+    vim.api.nvim_buf_set_lines(M.buf, 0, -1, false, { text })
+    return
   end
 
-  vim.o.showtabline = 2
-  vim.o.tabline = "%!v:lua.harpbar_tabline()"
+  -- Create new buffer + window
+  M.buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(M.buf, 0, -1, false, { text })
+  vim.api.nvim_buf_set_option(M.buf, "modifiable", false)
 
-  for i = 1, 9 do
-    vim.api.nvim_set_keymap(
-      "n",
-      "<leader>" .. i,
-      string.format(":lua require('harpoon.ui').nav_file(%d)<CR>", i),
-      { noremap = true, silent = true }
-    )
+  M.win = vim.api.nvim_open_win(M.buf, false, {
+    relative = "editor",
+    width = vim.o.columns,
+    height = M.opts.height,
+    row = 0,
+    col = 0,
+    focusable = false,
+    style = "minimal",
+    border = "none",
+  })
+
+  vim.api.nvim_win_set_option(M.win, "winhl", "Normal:" .. M.opts.hl_group)
+end
+
+function M.close()
+  if M.win and vim.api.nvim_win_is_valid(M.win) then
+    vim.api.nvim_win_close(M.win, true)
+    M.win = nil
+    M.buf = nil
   end
 end
 
